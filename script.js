@@ -1,125 +1,105 @@
-const quizData = [
-    {
-        question: "What is the capital of France?",
-        options: ["London", "Berlin", "Paris", "Madrid"],
-        correct: 2
-    },
-    {
-        question: "Which planet is known as the Red Planet?",
-        options: ["Venus", "Mars", "Jupiter", "Saturn"],
-        correct: 1
-    },
-    {
-        question: "Who painted the Mona Lisa?",
-        options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
-        correct: 2
-    },
-    {
-        question: "What is the largest ocean on Earth?",
-        options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
-        correct: 3
-    },
-    {
-        question: "Which element has the chemical symbol 'O'?",
-        options: ["Gold", "Silver", "Oxygen", "Iron"],
-        correct: 2
-    }
+const questions = [
+  { question: "Pizza or Burger?", options: ["Pizza", "Burger"] },
+  { question: "Beach or Mountains?", options: ["Beach", "Mountains"] },
+  { question: "Cat or Dog?", options: ["Cat", "Dog"] },
+  { question: "Tea or Coffee?", options: ["Tea", "Coffee"] },
+  { question: "Morning or Night?", options: ["Morning", "Night"] },
+  { question: "Books or Movies?", options: ["Books", "Movies"] },
+  { question: "Train or Plane?", options: ["Train", "Plane"] },
+  { question: "Summer or Winter?", options: ["Summer", "Winter"] },
+  { question: "Sweet or Salty?", options: ["Sweet", "Salty"] },
+  { question: "City or Countryside?", options: ["City", "Countryside"] },
 ];
 
-let currentQuestion = 0;
-let score = 0;
-let timer;
-let timeLeft = 30;
+let currentIndex = 0;
+let shuffledQuestions = [];
+let timerInterval;
+let secondsPassed = 0;
 
-const questionEl = document.getElementById('question');
-const optionsEl = document.getElementById('options');
-const nextBtn = document.getElementById('next-btn');
-const timerEl = document.getElementById('timer');
-const progressBar = document.querySelector('.progress-bar');
-const quizContainer = document.getElementById('quiz');
+const startBtn = document.getElementById("start-button");
+const retryBtn = document.getElementById("retry-button");
 
-function loadQuestion() {
-    const question = quizData[currentQuestion];
-    questionEl.textContent = question.question;
-    optionsEl.innerHTML = '';
-    question.options.forEach((option, index) => {
-        const button = document.createElement('button');
-        button.textContent = option;
-        button.classList.add('option');
-        button.addEventListener('click', () => selectOption(button, index));
-        optionsEl.appendChild(button);
-    });
-    nextBtn.style.display = 'none';
-    timeLeft = 30;
-    if (timer) clearInterval(timer);
-    startTimer();
-    updateProgress();
+startBtn.addEventListener("click", startGame);
+retryBtn.addEventListener("click", startGame);
+
+function startGame() {
+  document.getElementById("start-screen").style.display = "none";
+  document.getElementById("result-screen").style.display = "none";
+  document.getElementById("game-screen").style.display = "block";
+
+  shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+  currentIndex = 0;
+  loadQuestion();
 }
 
-function selectOption(selectedButton, optionIndex) {
-    const buttons = optionsEl.getElementsByClassName('option');
-    Array.from(buttons).forEach(button => button.classList.remove('selected'));
-    selectedButton.classList.add('selected');
-    nextBtn.style.display = 'block';
+function loadQuestion() {
+  clearInterval(timerInterval);
+  secondsPassed = 0;
+
+  if (currentIndex >= shuffledQuestions.length) {
+    showResult(true);
+    return;
+  }
+
+  const current = shuffledQuestions[currentIndex];
+  document.getElementById("question").innerText = current.question;
+
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML = "";
+
+  current.options.forEach(option => {
+    const btn = document.createElement("button");
+    btn.innerText = option;
+    btn.onclick = () => {
+      clearInterval(timerInterval);
+      currentIndex++;
+      setTimeout(loadQuestion, 200);
+    };
+    optionsDiv.appendChild(btn);
+  });
+
+  updateCounter();
+  renderTimer();
+  startTimer();
+}
+
+function updateCounter() {
+  document.getElementById("question-counter").innerText = `Question ${currentIndex + 1}/${questions.length}`;
+}
+
+function renderTimer() {
+  const track = document.getElementById("timer-track");
+  let line = "🐱";
+  for (let i = 0; i < 5; i++) {
+    line += i === secondsPassed ? "⬤" : "•";
+  }
+  line += "🐭";
+  track.innerText = line;
 }
 
 function startTimer() {
-    timer = setInterval(() => {
-        timeLeft--;
-        timerEl.textContent = `Time: ${timeLeft}s`;
-        if (timeLeft === 0) {
-            clearInterval(timer);
-            checkAnswer();
-        }
-    }, 1000);
-}
-
-function checkAnswer() {
-    const selectedOption = document.querySelector('.option.selected');
-    if (!selectedOption) return;
-
-    const selectedAnswer = Array.from(optionsEl.children).indexOf(selectedOption);
-    const question = quizData[currentQuestion];
-
-    if (selectedAnswer === question.correct) {
-        score++;
-        selectedOption.classList.add('correct');
-    } else {
-        selectedOption.classList.add('incorrect');
-        optionsEl.children[question.correct].classList.add('correct');
+  timerInterval = setInterval(() => {
+    secondsPassed++;
+    renderTimer();
+    if (secondsPassed >= 5) {
+      clearInterval(timerInterval);
+      showResult(false);
     }
-
-    Array.from(optionsEl.children).forEach(button => button.disabled = true);
-    clearInterval(timer);
+  }, 1000);
 }
 
-function updateProgress() {
-    const progress = ((currentQuestion + 1) / quizData.length) * 100;
-    progressBar.style.width = `${progress}%`;
-    progressBar.setAttribute('aria-valuenow', progress);
+function showResult(won) {
+  document.getElementById("game-screen").style.display = "none";
+  document.getElementById("result-screen").style.display = "flex";
+
+  const msg = document.getElementById("result-message");
+  const visual = document.getElementById("result-visual");
+
+  if (won) {
+    msg.innerText = "🎉 Nice and fast answers!";
+    visual.innerText = "🐭💨";
+  } else {
+    msg.innerText = "💀 Time’s up! The cat caught the mouse.";
+    visual.innerText = "🐱🐭";
+  }
 }
-
-function showResults() {
-    quizContainer.innerHTML = `
-                <div class="results">
-                    <div class="result-icon">
-                        <i class="fas ${score > quizData.length / 2 ? 'fa-trophy text-success' : 'fa-times-circle text-danger'}"></i>
-                    </div>
-                    <div class="score">Your score: ${score}/${quizData.length}</div>
-                    <p>${score > quizData.length / 2 ? 'Great job!' : 'Better luck next time!'}</p>
-                    <button class="btn btn-primary" onclick="location.reload()">Restart Quiz</button>
-                </div>
-            `;
-}
-
-nextBtn.addEventListener('click', () => {
-    checkAnswer();
-    currentQuestion++;
-    if (currentQuestion < quizData.length) {
-        loadQuestion();
-    } else {
-        showResults();
-    }
-});
-
-loadQuestion();
